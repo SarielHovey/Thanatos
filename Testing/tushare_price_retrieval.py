@@ -19,7 +19,7 @@ def obtain_list_of_db_tickers():
     Obtains a list of the ticker symbols of HS300 in the database.
     """
     cur = con.cursor()
-    cur.execute("SELECT id, ticker FROM symbol where exchange_id = 'SSE' or exchange_id = 'SZSE'")
+    cur.execute("SELECT id, ticker FROM symbol where exchange_id =3 or exchange_id =4")
     con.commit()
     data = cur.fetchall()
     return [[d[0], d[1]] for d in data]

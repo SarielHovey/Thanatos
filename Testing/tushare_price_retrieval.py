@@ -1,68 +1,106 @@
 from datetime import datetime as dt
-import pandas as pd
+import warnings
+import time
 import MySQLdb as mdb
+import tushare as ts
+import pandas as pd
+# Please set Tushare Pro API before use this
+WAIT_TIME_IN_SECONDS = 5.0 # Adjust how frequently the API is called (second)
 
-db_host = 'localhost'
-db_user = 'sec_user'
-db_pass = 'Your_Password'
-db_name = 'securities_master'
+# Obtain a database connection to the MySQL instance
+DB_HOST = 'localhost'
+DB_USER = 'sec_user'
+DB_PASS = 'shuangshuang'
+DB_NAME = 'securities_master'
+con = mdb.connect(DB_HOST, DB_USER, DB_PASS, DB_NAME)
 
-now = dt.utcnow()
-con = mdb.connect( host=db_host, user=db_user, passwd=db_pass, db=db_name)
-SP500 = pd.read_csv('SP500.csv',encoding='UTF-8',dtype={'ticker':str})
-symbols = []
-for i, symbol in enumerate(SP500.Symbol):
-    symbols.append(
-        (
-        1,
-        SP500.ix[i,'Symbol'],
-        SP500.ix[i,'Security'],
-        'stock', 
-        SP500.iloc[i,3], # Sector
-        'USD', now, now
-        ))
+def obtain_list_of_db_tickers():
+    """
+    Obtains a list of the ticker symbols of HS300 in the database.
+    """
+    cur = con.cursor()
+    cur.execute("SELECT id, ticker FROM symbol where exchange_id = 'SSE' or exchange_id = 'SZSE'")
+    con.commit()
+    data = cur.fetchall()
+    return [[d[0], d[1]] for d in data]
 
-column_str = ( "exchange_id, ticker, name, instrument, sector, currency, created_date, last_updated_date")
-insert_str = ("%s, " * 8)[:-2]
-final_str = "INSERT INTO symbol (%s) VALUES (%s)" % (column_str, insert_str)
-cur = con.cursor()
-cur.executemany(final_str, symbols)
-con.commit()
+def tushare_ticker(ticker_list):
+    """
+    Input should be output from obtain_list_of_db_tickers(),
+    Output will be a modified ticker_list for Tushare API with same shape.
+    Further Version will be rewrite in Cython for performance.
+    """
+    for i, tick in enumerate(ticker_list):
+        if tick[1][:2] == '60':
+            tick[1] += '.SH'
+        elif tick[1][:2] == '00':
+            tick[1] += '.SZ'
+        elif tick[1][:2] == '30':
+            tick[1] += '.SZ'
+    return ticker_list
 
-column_str = ("abbrev, name, currency, created_date, last_updated_date")
-insert_str = ("%s, " * 5)[:-2]
-final_str = "INSERT INTO exchange (%s) VALUES (%s)" % (column_str, insert_str)
-cur.executemany(final_str, [('NYSE','New York Stock Exchange','USD',dt.utcnow(),dt.utcnow())])
-con.commit()
-cur.executemany(final_str, [('NASDAQ','National Association of Securities Dealers Automated Quotations','USD',dt.utcnow(),dt.utcnow())])
-con.commit()
-cur.executemany(final_str, [('SSE','Shanghai Stock Exchange','CNY',dt.utcnow(),dt.utcnow()),('SZSE','Shenzhen Stock Exchange','CNY',dt.utcnow(),dt.utcnow())])
-con.commit()
+def tushare_data(tick, start_date, end_date):
+    """
+    Download daily data via tushare API for one tick.
+    Price are non-adjusted.
+    """
+    try:
+        data0 = ts.pro_bar(ts_code=tick, start_date=start_date, end_date=end_date,adj=None)
+        data1 = ts.pro_api().adj_factor(ts_code=tick, start_date=start_date, end_date=end_date)
+    except Exception as e:
+        print(
+            "Could not download AlphaVantage data for %s ticker "
+            "(%s)...skipping." % (ticker, e))
+        return []
+    else:
+        data = pd.merge(data0[['ts_code','trade_date','open','high','low','close','vol']],data1[['trade_date','adj_factor']],how='left',left_on='trade_date',right_on='trade_date')
+        data.vol = data.vol.apply(lambda x: int(x * 100))
+        data.trade_date = pd.to_datetime(data.trade_date)
+        prices = []
+        for i, day in enumerate(data.trade_date):
+            prices.append(
+                (
+                    data.ix[i,'trade_date'], # d0
+                    data.ix[i,'open'], # d1
+                    data.ix[i,'high'], # d2
+                    data.ix[i,'low'], # d3
+                    data.ix[i,'close'], # d4
+                    data.ix[i,'vol'], # d5
+                    data.ix[i,'adj_factor'] # d6
+                ))
+        return prices
 
-HS300 = pd.read_csv('HS300.csv',encoding='UTF-8',dtype={'ticker':str})
-symbols = []
-for i, symbol in enumerate(HS300.ticker):
-    symbols.append(
-        (
-        HS300.ix[i,'exchange_id'],
-        HS300.ix[i,'ticker'],
-        HS300.ix[i,'name'],
-        'stock', 
-        HS300.ix[i,'sector'], # Sector
-        'CNY', dt.utcnow(), dt.utcnow()
-        ))
-column_str = ( "exchange_id, ticker, name, instrument, sector, currency, created_date, last_updated_date")
-insert_str = ("%s, " * 8)[:-2]
-final_str = "INSERT INTO symbol (%s) VALUES (%s)" % (column_str, insert_str)
-cur.executemany(final_str, symbols)
-con.commit()
+def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
+    """
+    Takes a list of tuples of daily_data and adds it to the MySQL database. Appends the vendor ID and symbol ID to the data.
+    """
+    now = dt.utcnow()
+    # Amend the data to include the vendor ID and symbol ID
+    daily_data = [
+        (data_vendor_id, symbol_id, d[0], now, now, d[1], d[2], d[3], d[4], d[5], d[6]) for d in daily_data
+    ]
+    # Create the insert strings
+    column_str = (
+        "data_vendor_id, symbol_id, price_date, created_date, last_updated_date, open_price, high_price, low_price, close_price, volume, adj_factor"
+    )
+    insert_str = ("%s, " * 11)[:-2]
+    final_str = ("INSERT INTO daily_price (%s) VALUES (%s)" % (column_str, insert_str))
+    # Using the MySQL connection, carry out an INSERT INTO for every symbol
+    cur = con.cursor()
+    cur.executemany(final_str, daily_data)
+    con.commit()
 
 
-'''
-CREATE TABLE data_vendor ( id int NOT NULL AUTO_INCREMENT, name varchar(64) NOT NULL, website_url varchar(255) NULL, support_email varchar(255) NULL, created_date datetime NOT NULL, last_updated_date datetime NOT NULL, PRIMARY KEY (id)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
-'''
-column_str = ("name, created_date, last_updated_date")
-insert_str = ("%s, " * 3)[:-2]
-final_str = "INSERT INTO data_vendor (%s) VALUES (%s)" % (column_str, insert_str)
-cur.executemany(final_str, [('AlphaVantage',dt.utcnow(),dt.utcnow()),('Tushare',dt.utcnow(),dt.utcnow())])
-con.commit()
+
+if __name__ == '__main__':
+    # This ignores the warnings regarding Data Truncation from the AlphaVantage precision to Decimal(19,4) datatypes
+    warnings.filterwarnings('ignore')
+    ticker_list = obtain_list_of_db_tickers()
+    tickers = tushare_ticker(ticker_list)
+    lentickers = len(tickers)
+    for i, t in enumerate(tickers):
+        print("Adding data for %s: %s out of %s" % (t[1], i+1, lentickers))
+        ts_data = tushare_data(t[1],start_date='20080101',end_date='20200206')
+        insert_daily_data_into_db(2, t[0], ts_data)
+        time.sleep(WAIT_TIME_IN_SECONDS)
+    print("Successfully added TuSharePro pricing data to DB.")

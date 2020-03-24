@@ -23,7 +23,7 @@ def create_lagged_series(symbol, start_date, end_date, lags=5, source='tu'):
 
     Returns
     -------
-    'pd.DataFrame' Contains the Adjusted Closing Price returns and lags
+    'pd.DataFrame' Contains the Adjusted Closing Price returns and lags. e.g: 0.646353 means 0.646% return
     """
     # Obtain stock pricing from AlphaVantage
     if source == 'av':

@@ -5,7 +5,7 @@ import MySQLdb as mdb
 import tushare as ts
 import pandas as pd
 # Please set Tushare Pro API before use this
-WAIT_TIME_IN_SECONDS = 5.0 # Adjust how frequently the API is called (second)
+WAIT_TIME_IN_SECONDS = 1.5 # Adjust how frequently the API is called (second)
 
 # Obtain a database connection to the MySQL instance
 DB_HOST = 'localhost'
@@ -19,7 +19,7 @@ def obtain_list_of_db_tickers():
     Obtains a list of the ticker symbols of HS300 in the database.
     """
     cur = con.cursor()
-    cur.execute("SELECT id, ticker FROM symbol where exchange_id =3 or exchange_id =4")
+    cur.execute("SELECT id, ticker FROM symbol where exchange_id = 3 or exchange_id = 4")
     con.commit()
     data = cur.fetchall()
     return [[d[0], d[1]] for d in data]
@@ -44,13 +44,16 @@ def tushare_data(tick, start_date, end_date):
     Download daily data via tushare API for one tick.
     Price are non-adjusted.
     """
+    global errList
+    errList = []
     try:
         data0 = ts.pro_bar(ts_code=tick, start_date=start_date, end_date=end_date,adj=None)
         data1 = ts.pro_api().adj_factor(ts_code=tick, start_date=start_date, end_date=end_date)
     except Exception as e:
         print(
-            "Could not download AlphaVantage data for %s ticker "
-            "(%s)...skipping." % (ticker, e))
+            "Could not download Tushare data for %s ticker "
+            "(%s)...skipping." % (tick, e))
+        errList.append(tick)
         return []
     else:
         data = pd.merge(data0[['ts_code','trade_date','open','high','low','close','vol']],data1[['trade_date','adj_factor']],how='left',left_on='trade_date',right_on='trade_date')
@@ -60,13 +63,13 @@ def tushare_data(tick, start_date, end_date):
         for i, day in enumerate(data.trade_date):
             prices.append(
                 (
-                    data.ix[i,'trade_date'], # d0
-                    data.ix[i,'open'], # d1
-                    data.ix[i,'high'], # d2
-                    data.ix[i,'low'], # d3
-                    data.ix[i,'close'], # d4
-                    data.ix[i,'vol'], # d5
-                    data.ix[i,'adj_factor'] # d6
+                    data.iloc[i,1], # d0, trade_date
+                    data.iloc[i,2], # d1, open_price
+                    data.iloc[i,3], # d2, high_price
+                    data.iloc[i,4], # d3, low_price
+                    data.iloc[i,5], # d4, close_price
+                    data.iloc[i,6], # d5, volume
+                    data.iloc[i,7] # d6, adj_factor
                 ))
         return prices
 
@@ -77,7 +80,7 @@ def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
     now = dt.utcnow()
     # Amend the data to include the vendor ID and symbol ID
     daily_data = [
-        (data_vendor_id, symbol_id, d[0], now, now, d[1], d[2], d[3], d[4], d[5], d[6]) for d in daily_data
+        (data_vendor_id, symbol_id, d[0], dt.utcnow(), dt.utcnow(), d[1], d[2], d[3], d[4], d[5], d[6]) for d in daily_data
     ]
     # Create the insert strings
     column_str = (
@@ -100,7 +103,9 @@ if __name__ == '__main__':
     lentickers = len(tickers)
     for i, t in enumerate(tickers):
         print("Adding data for %s: %s out of %s" % (t[1], i+1, lentickers))
-        ts_data = tushare_data(t[1],start_date='20080101',end_date='20200206')
+        ts_data = tushare_data(t[1],start_date='20200416',end_date='20200417')
         insert_daily_data_into_db(2, t[0], ts_data)
         time.sleep(WAIT_TIME_IN_SECONDS)
+    errList = pd.Series(errList)
+    errList.to_csv('ErrorList.csv',header=False,index=False,encoding='UTF-8')
     print("Successfully added TuSharePro pricing data to DB.")

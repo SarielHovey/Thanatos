@@ -61,7 +61,7 @@ class HistoricCSVDataHandler(DataHandler):
     """
     HistoricCSVDataHandler is designed to read CSV files for each requested symbol from disk and provide an interface to obtain the "latest" bar in a manner identical to a live trading interface.
     """
-    def __init__(self, events, csv_dir, symbol_list):
+    def __init__(self, events, csv_dir, symbol_list, startdate='2000-01-01 00:00:00', enddate='2020-01-01 00:00:00'):
         """
         Initialises the historic data handler by requesting the location of the CSV files and a list of symbols.
         It will be assumed that all files are of the form 'symbol.csv', where symbol is a string in the list.
@@ -74,6 +74,8 @@ class HistoricCSVDataHandler(DataHandler):
         self.events = events
         self.csv_dir = csv_dir
         self.symbol_list = symbol_list
+        self.startdate = startdate # Redundent, remain for compatibality
+        self.enddate = enddate # Redundent, remain for compatibality
         self.symbol_data = {}
         self.latest_symbol_data = {}
         self.continue_backtest = True
@@ -195,7 +197,7 @@ class SQLDataHandler(DataHandler):
 
     Work the same as HistoricCSVDataHandler().
     """
-    def __init__(self, events, symbol_list, startdate='2000-01-01 00:00:00', enddate='2020-01-01 00:00:00'):
+    def __init__(self, events, csv_dir, symbol_list, startdate='2000-01-01 00:00:00', enddate='2020-01-01 00:00:00'):
         """
         Initialize SQLDataHandler by requesting data from DB.
 
@@ -207,6 +209,7 @@ class SQLDataHandler(DataHandler):
         enddate: str, '2020-01-01 00:00:00'
         """
         self.events = events
+        self.csv_dir = csv_dir # Redundent, remain for compatibality
         self.startdate = startdate
         self.enddate = enddate
         self.symbol_list = symbol_list

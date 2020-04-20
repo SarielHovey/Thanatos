@@ -10,7 +10,7 @@ class Backtest(object):
     """
     Enscapsulates the settings and components for carrying out an event-driven backtest.
     """
-    def __init__(self, csv_dir, symbol_list, initial_capital, heartbeat, start_date, data_handler, execution_handler, portfolio, strategy):
+    def __init__(self, csv_dir, symbol_list, initial_capital, heartbeat, startdate, enddate, data_handler, execution_handler, portfolio, strategy):
         """
         Initialises the backtest.
 
@@ -20,6 +20,7 @@ class Backtest(object):
         intial_capital - The starting capital for the portfolio.
         heartbeat - Backtest "heartbeat" in seconds.
         start_date - The start datetime of the strategy.
+        end_date - The end datetime of the strategy.
         data_handler - (Class) Handles the market data feed.
         execution_handler - (Class) Handles the orders/fills for trades.
         portfolio - (Class) Keeps track of portfolio current and prior positions.
@@ -29,7 +30,8 @@ class Backtest(object):
         self.symbol_list = symbol_list
         self.initial_capital = initial_capital
         self.heartbeat = heartbeat
-        self.start_date = start_date
+        self.start_date = startdate
+        self.end_date = enddate
         self.data_handler_cls = data_handler
         self.execution_handler_cls = execution_handler
         self.portfolio_cls = portfolio
@@ -49,7 +51,7 @@ class Backtest(object):
         Generates the trading instance objects from their class types.
         """
         print( "Creating DataHandler, Strategy, Portfolio and ExecutionHandler")
-        self.data_handler = self.data_handler_cls(self.events, self.symbol_list)
+        self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list, self.start_date.strftime('%Y-%m-%d %H:%M:%S'), self.end_date.strftime('%Y-%m-%d %H:%M:%S'))
         self.strategy = self.strategy_cls(self.data_handler, self.events)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date, self.initial_capital)
         self.execution_handler = self.execution_handler_cls(self.events)

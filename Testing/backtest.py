@@ -114,4 +114,3 @@ class Backtest(object):
         """
         self._run_backtest()
         self._output_performance(frequency=frequency)
-        

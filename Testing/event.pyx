@@ -9,7 +9,7 @@ cdef class MarketEvent(Event):
     """
     Handles the event of receiving a new market update with corresponding bars.
     """
-    cdef str type
+    cdef public str type
     def __init__(self):
         """
         Initialises the MarketEvent.
@@ -21,13 +21,8 @@ cdef class SignalEvent(Event):
     """
     Handles the event of sending a Signal from a Strategy object. This is received by a Portfolio object and acted upon.
     """
-    cdef:
-        str type
-        str strategy_id
-        str symbol
-        datetime datetime
-        str signal_type
-        str strength
+    cdef public str type, strategy_id, symbol, signal_type, strength
+    cdef public datetime datetime
 
     def __init__(self, strategy_id, symbol, datetime, signal_type, strength):
         """
@@ -51,12 +46,8 @@ cdef class OrderEvent(Event):
     """
     Handles the event of sending an Order to an execution system. The order contains a symbol (e.g. GOOG), a type (market or limit), quantity and a direction.
     """
-    cdef:
-        str type
-        str symbol
-        str order_type
-        double quantity
-        str direction
+    cdef public str type,symbol,order_type,direction
+    cdef public double quantity
 
     def __init__(self, symbol, order_type, quantity, direction):
         """
@@ -78,7 +69,8 @@ cdef class OrderEvent(Event):
         """
         Checks that quantity is a positive integer.
         """
-        if not isinstance(quantity, int) or quantity <= 0:
+        #if not isinstance(quantity, int) or quantity <= 0:
+        if quantity <= 0:
             raise ValueError("Order event quantity is not a positive integer")
         return quantity
 
@@ -95,15 +87,9 @@ cdef class FillEvent(Event):
     """
     Encapsulates the notion of a Filled Order, as returned from a brokerage. Stores the quantity of an instrument actually filled and at what price. In addition, stores the commission of the trade from the brokerage.
     """
-    cdef:
-        str type
-        datetime timeindex
-        str symbol
-        str exchange
-        double quantity
-        str direction
-        double fill_cost
-        double commission
+    cdef public str type,symbol,exchange,direction
+    cdef public double quantity,fill_cost,commission
+    cdef public datetime timeindex
 
     def __init__(self, timeindex, symbol, exchange, quantity,direction, fill_cost, commission=None):
         """

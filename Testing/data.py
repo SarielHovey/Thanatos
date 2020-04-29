@@ -106,6 +106,7 @@ class HistoricCSVDataHandler(DataHandler):
 
         for s in self.symbol_list:
             self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad')
+            self.symbol_data[s].fillna(method='ffill',axis=0,inplace=True) # Be careful if the start day value is 0. Incorrect signal may be triggered in this case
             self.symbol_data[s]["returns"] = self.symbol_data[s]["adj_close"].pct_change().dropna()
             self.symbol_data[s] = self.symbol_data[s].iterrows()
         # Output is generator of ('price_date', 'ticker', 'open_price', 'high_price', 'low_price', 'close_price', 'volume','adj_factor','adj_close','returns')
@@ -238,6 +239,7 @@ class SQLDataHandler(DataHandler):
         
         for s in self.symbol_list:
             self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad')
+            self.symbol_data[s].fillna(method='ffill',axis=0,inplace=True) # Be careful if the start day value is 0. Incorrect signal may be triggered in this case
             self.symbol_data[s]["returns"] = self.symbol_data[s]["adj_close"].pct_change().dropna()
             self.symbol_data[s] = self.symbol_data[s].iterrows()
 

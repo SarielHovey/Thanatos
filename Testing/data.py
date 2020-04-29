@@ -99,7 +99,7 @@ class HistoricCSVDataHandler(DataHandler):
             if comb_index is None:
                 comb_index = self.symbol_data[s].index
             else:
-                comb_index.union(self.symbol_data[s].index)
+                comb_index = comb_index.union(self.symbol_data[s].index)
 
             # Set the latest symbol_data to None
             self.latest_symbol_data[s] = []
@@ -233,7 +233,7 @@ class SQLDataHandler(DataHandler):
             if comb_index is None:
                 comb_index = self.symbol_data[s].index
             else:
-                comb_index.union(self.symbol_data[s].index)
+                comb_index = comb_index.union(self.symbol_data[s].index)
             self.latest_symbol_data[s] = []
         
         for s in self.symbol_list:
@@ -321,6 +321,3 @@ class SQLDataHandler(DataHandler):
                 if bar is not None:
                     self.latest_symbol_data[s].append(bar)
         self.events.put(MarketEvent())        
-
-
-

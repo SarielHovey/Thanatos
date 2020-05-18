@@ -78,12 +78,12 @@ class MovingAverageCrossStrategy(Strategy):
                     if short_sma > long_sma and self.bought[s] == "OUT":
                         print("LONG: %s" % bar_date)
                         sig_dir = 'LONG'
-                        signal = SignalEvent(1, symbol, cur_date, sig_dir, 1.0)
+                        signal = SignalEvent(strategy_id=1, symbol=symbol, datetime=cur_date, signal_type=sig_dir, strength=1.0)
                         self.events.put(signal)
                         self.bought[s] = 'LONG'
                     elif short_sma < long_sma and self.bought[s] == "LONG":
                         print("SHORT: %s" % bar_date)
                         sig_dir = 'EXIT'
-                        signal = SignalEvent(1, symbol, cur_date, sig_dir, 1.0)
+                        signal = SignalEvent(strategy_id=1, symbol=symbol, datetime=cur_date, signal_type=sig_dir, strength=1.0)
                         self.events.put(signal)
                         self.bought[s] = 'OUT'

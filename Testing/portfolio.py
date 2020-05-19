@@ -209,7 +209,6 @@ class Portfolio(object):
         curve['returns'] = curve['total'].pct_change()
         curve['returns'][0] = 0.0
         curve['equity_curve'] = (1.0+curve['returns']).cumprod()
-        curve['equity_curve'][0] = 0.0
         self.equity_curve = curve
 
     def output_summary_stats(self, frequency = 252):
@@ -223,6 +222,7 @@ class Portfolio(object):
         sharpe_ratio = create_sharpe_ratio(returns, periods=frequency)
         drawdown, max_dd, dd_duration = create_drawdowns(pnl)
         self.equity_curve['drawdown'] = drawdown
+        self.equity_curve['drawdown'][0] = 0.0
 
         stats = [("Total Return", "%0.2f%%" %  ((total_return - 1.0) * 100.0)), 
         ("Sharpe Ratio", "%0.2f" % sharpe_ratio), ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)), ("Drawdown Duration", "%d" % dd_duration)]

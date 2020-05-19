@@ -85,7 +85,11 @@ class Portfolio(object):
         dp['datetime'] = latest_datetime
 
         for s in self.symbol_list:
-            dp[s] = self.current_positions[s]
+            temp = self.current_positions[s]
+            if temp >= 0.0:
+                dp[s] = self.current_positions[s]
+            else:
+                dp[s] = 0.0
 
         # Append the current positions
         self.all_positions.append(dp)
@@ -101,8 +105,13 @@ class Portfolio(object):
         for s in self.symbol_list:
             # Approximation to the real value
             market_value = self.current_positions[s] * self.bars.get_latest_bar_value(s, "adj_close")
-            dh[s] = market_value
-            dh['total'] += market_value
+            if market_value >= 0.0:
+                dh[s] = market_value
+                dh['total'] += market_value
+            else:
+                market_value = 0.0
+                dh[s] = market_value
+                dh['total'] += market_value
 
         # Append the current holdings
         self.all_holdings.append(dh)
@@ -196,8 +205,11 @@ class Portfolio(object):
         """
         curve = pd.DataFrame(self.all_holdings)
         curve.set_index('datetime', inplace=True)
+        #curve.fillna(method='ffill',axis=1,inplace=True)
         curve['returns'] = curve['total'].pct_change()
+        curve['returns'][0] = 0.0
         curve['equity_curve'] = (1.0+curve['returns']).cumprod()
+        curve['equity_curve'][0] = 0.0
         self.equity_curve = curve
 
     def output_summary_stats(self, frequency = 252):
@@ -215,5 +227,6 @@ class Portfolio(object):
         stats = [("Total Return", "%0.2f%%" %  ((total_return - 1.0) * 100.0)), 
         ("Sharpe Ratio", "%0.2f" % sharpe_ratio), ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)), ("Drawdown Duration", "%d" % dd_duration)]
 
-        self.equity_curve.to_csv('equity.csv')
+        self.equity_curve.to_csv('EquityCurve.csv')
         return stats
+    

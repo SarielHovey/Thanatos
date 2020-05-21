@@ -18,7 +18,7 @@ class Strategy(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def calculate_signals(self):
+    def calculate_signals(self, event):
         """
         Provides the mechanisms to calculate the list of signals.
         """
@@ -28,7 +28,7 @@ class MovingAverageCrossStrategy(Strategy):
     """
     Carries out a basic Moving Average Crossover strategy with a short/long simple weighted moving average. Default short/long windows are 30/120 periods respectively.
     """
-    def __init__(self, bars, events, short_window=30, long_window=120):
+    def __init__(self, bars, events, window=[30,120]):
         """
         Initialises the Moving Average Cross Strategy.
 
@@ -41,8 +41,8 @@ class MovingAverageCrossStrategy(Strategy):
         self.bars = bars
         self.symbol_list = self.bars.symbol_list
         self.events = events
-        self.short_window = short_window
-        self.long_window = long_window
+        self.short_window = window[0]
+        self.long_window = window[1]
 
         # Set to True if a symbol is in the market
         self.bought = self._calculate_initial_bought()

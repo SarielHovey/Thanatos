@@ -230,3 +230,16 @@ class Portfolio(object):
         self.equity_curve.to_csv('EquityCurve.csv')
         return stats
     
+    def plot_summary(self):
+        plt.style.use('seaborn')
+        fig = plt.figure()
+        ax1 = fig.add_subplot(311, ylabel='Portfolio value, %')
+        self.equity_curve['equity_curve'].plot(ax=ax1, color="blue", lw=1.)
+        ax2 = fig.add_subplot(312, ylabel='Period returns, %')
+        self.equity_curve['returns'].plot(ax=ax2, color="black", lw=1.)
+        ax3 = fig.add_subplot(313, ylabel='Drawdowns, %')
+        self.equity_curve['drawdown'].plot(ax=ax3, color="red", lw=1.)
+
+        plt.gcf().autofmt_xdate()
+        plt.tight_layout()
+        plt.savefig('EquityCurve.png')

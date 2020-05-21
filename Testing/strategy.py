@@ -67,23 +67,29 @@ class MovingAverageCrossStrategy(Strategy):
             for s in self.symbol_list:
                 bars = self.bars.get_latest_bars_values(s, "adj_close", N=self.long_window)
                 bar_date = self.bars.get_latest_bar_datetime(s)
-                if bars is not None and bars != []:
+                if len(bars)+1 <= self.short_window:
+                    short_sma = np.mean(bars[:])
+                    long_sma = np.mean(bars[:])
+                elif self.short_window < len(bars)+1 and  len(bars)+1 <= self.long_window:
                     short_sma = np.mean(bars[-self.short_window:])
-                    long_sma = np.mean(bars[-self.long_window:])
+                    long_sma = np.mean(bars)
+                else:
+                    short_sma = np.mean(bars[-self.short_window-1:-1])
+                    long_sma = np.mean(bars[-self.long_window-1:-1])
 
-                    symbol = s
-                    cur_date = dt.utcnow()
-                    sig_dir = ""
+                symbol = s
+                cur_date = dt.utcnow()
+                sig_dir = ""
 
-                    if short_sma > long_sma and self.bought[s] == "OUT":
-                        print("LONG: %s" % bar_date)
-                        sig_dir = 'LONG'
-                        signal = SignalEvent(strategy_id=1, symbol=symbol, datetime=cur_date, signal_type=sig_dir, strength=1.0)
-                        self.events.put(signal)
-                        self.bought[s] = 'LONG'
-                    elif short_sma < long_sma and self.bought[s] == "LONG":
-                        print("SHORT: %s" % bar_date)
-                        sig_dir = 'EXIT'
-                        signal = SignalEvent(strategy_id=1, symbol=symbol, datetime=cur_date, signal_type=sig_dir, strength=1.0)
-                        self.events.put(signal)
-                        self.bought[s] = 'OUT'
+                if short_sma > long_sma and self.bought[s] == "OUT":
+                    print("LONG: %s" % bar_date)
+                    sig_dir = 'LONG'
+                    signal = SignalEvent(strategy_id=1, symbol=symbol, datetime=cur_date, signal_type=sig_dir, strength=1.0)
+                    self.events.put(signal)
+                    self.bought[s] = 'LONG'
+                elif short_sma < long_sma and self.bought[s] == "LONG":
+                    print("SHORT: %s" % bar_date)
+                    sig_dir = 'EXIT'
+                    signal = SignalEvent(strategy_id=1, symbol=symbol, datetime=cur_date, signal_type=sig_dir, strength=1.0)
+                    self.events.put(signal)
+                    self.bought[s] = 'OUT'

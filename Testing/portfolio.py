@@ -238,7 +238,7 @@ class Portfolio(object):
         ax2 = fig.add_subplot(312, ylabel='Period returns, %')
         self.equity_curve['returns'].plot(ax=ax2, color="black", lw=1.)
         ax3 = fig.add_subplot(313, ylabel='Drawdowns, %')
-        self.equity_curve['drawdown'].plot(ax=ax3, color="red", lw=1.)
+        (self.equity_curve['drawdown']*100).plot(ax=ax3, color="red", lw=1.)
 
         plt.gcf().autofmt_xdate()
         plt.tight_layout()

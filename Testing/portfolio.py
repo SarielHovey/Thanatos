@@ -1,6 +1,5 @@
 import datetime
 from numpy import floor
-
 try:
     import Queue as queue
 except ImportError:
@@ -8,6 +7,7 @@ except ImportError:
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from event import FillEvent, OrderEvent
 from performance import create_sharpe_ratio, create_drawdowns

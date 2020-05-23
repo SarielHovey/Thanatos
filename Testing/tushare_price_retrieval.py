@@ -10,7 +10,7 @@ WAIT_TIME_IN_SECONDS = 1.5 # Adjust how frequently the API is called (second)
 # Obtain a database connection to the MySQL instance
 DB_HOST = 'localhost'
 DB_USER = 'sec_user'
-DB_PASS = 'YOUR_PASSWORD_HERE'
+DB_PASS = 'shuangshuang'
 DB_NAME = 'securities_master'
 con = mdb.connect(DB_HOST, DB_USER, DB_PASS, DB_NAME)
 
@@ -59,6 +59,7 @@ def tushare_data(tick, start_date, end_date):
         data = pd.merge(data0[['ts_code','trade_date','open','high','low','close','vol']],data1[['trade_date','adj_factor']],how='left',left_on='trade_date',right_on='trade_date')
         data.vol = data.vol.apply(lambda x: int(x * 100))
         data.trade_date = pd.to_datetime(data.trade_date)
+        data['adj_factor'].fillna(method='pad',inplace=True)
         prices = []
         for i, day in enumerate(data.trade_date):
             prices.append(
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     lentickers = len(tickers)
     for i, t in enumerate(tickers):
         print("Adding data for %s: %s out of %s" % (t[1], i+1, lentickers))
-        ts_data = tushare_data(t[1],start_date='20200416',end_date='20200417')
+        ts_data = tushare_data(t[1],start_date='20000101',end_date='20100103')
         insert_daily_data_into_db(2, t[0], ts_data)
         time.sleep(WAIT_TIME_IN_SECONDS)
     errList = pd.Series(errList)

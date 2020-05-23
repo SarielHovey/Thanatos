@@ -10,7 +10,7 @@ WAIT_TIME_IN_SECONDS = 1.5 # Adjust how frequently the API is called (second)
 # Obtain a database connection to the MySQL instance
 DB_HOST = 'localhost'
 DB_USER = 'sec_user'
-DB_PASS = 'shuangshuang'
+DB_PASS = 'Your_Password_Here'
 DB_NAME = 'securities_master'
 con = mdb.connect(DB_HOST, DB_USER, DB_PASS, DB_NAME)
 

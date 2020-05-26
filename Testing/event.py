@@ -42,7 +42,7 @@ class OrderEvent(Event):
     """
     Handles the event of sending an Order to an execution system. The order contains date, a symbol (e.g. GOOG), a type (market or limit), quantity and a direction.
     """
-    def __init__(self, timeindex, symbol, order_type, quantity, direction):
+    def __init__(self, timeindex, symbol, order_type, quantity, direction, smooth=0):
         """
         Initialises the order type, setting whether it is a Market order ('MKT') or Limit order ('LMT'), has a quantity (integral) and its direction ('BUY' or 'SELL').
 
@@ -52,6 +52,7 @@ class OrderEvent(Event):
         order_type - 'MKT' or 'LMT' for Market or Limit.
         quantity - Non-negative integer for quantity.
         direction - 'BUY' or 'SELL' for long or short.
+        smooth = int, count for smoothing days; if 0 then no smoothing; if > 0 then timeindex is initial order time.
         """
         self.type = 'ORDER'
         self.timeindex = timeindex
@@ -59,6 +60,7 @@ class OrderEvent(Event):
         self.order_type = order_type
         self.quantity = self._check_set_quantity_positive(quantity)
         self.direction = direction
+        self.smooth = 0
 
     def _check_set_quantity_positive(self, quantity):
         """

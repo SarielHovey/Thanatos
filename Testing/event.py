@@ -60,7 +60,7 @@ class OrderEvent(Event):
         self.order_type = order_type
         self.quantity = self._check_set_quantity_positive(quantity)
         self.direction = direction
-        self.smooth = 0
+        self.smooth = smooth
 
     def _check_set_quantity_positive(self, quantity):
         """

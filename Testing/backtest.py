@@ -82,6 +82,7 @@ class Backtest(object):
                         if event.type == 'MARKET':
                             self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
+                            self.portfolio.historical_signal(event) # Execute remaining orders due to lag and smoothing
                         elif event.type == 'SIGNAL':
                             self.signals += 1
                             self.portfolio.update_signal(event)

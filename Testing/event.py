@@ -37,22 +37,24 @@ class SignalEvent(Event):
         self.signal_type = signal_type
         self.strength = strength
         self.quantity = quantity
-
+        
 class OrderEvent(Event):
     """
-    Handles the event of sending an Order to an execution system. The order contains a symbol (e.g. GOOG), a type (market or limit), quantity and a direction.
+    Handles the event of sending an Order to an execution system. The order contains date, a symbol (e.g. GOOG), a type (market or limit), quantity and a direction.
     """
-    def __init__(self, symbol, order_type, quantity, direction):
+    def __init__(self, timeindex, symbol, order_type, quantity, direction):
         """
         Initialises the order type, setting whether it is a Market order ('MKT') or Limit order ('LMT'), has a quantity (integral) and its direction ('BUY' or 'SELL').
 
         Parameters:
+        timeindex - datetime - The timeindex of the order
         symbol - The instrument to trade.
         order_type - 'MKT' or 'LMT' for Market or Limit.
         quantity - Non-negative integer for quantity.
         direction - 'BUY' or 'SELL' for long or short.
         """
         self.type = 'ORDER'
+        self.timeindex = timeindex
         self.symbol = symbol
         self.order_type = order_type
         self.quantity = self._check_set_quantity_positive(quantity)

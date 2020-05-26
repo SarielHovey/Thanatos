@@ -1,5 +1,6 @@
 import datetime
 from numpy import floor
+
 try:
     import Queue as queue
 except ImportError:
@@ -35,6 +36,11 @@ class Portfolio(object):
         self.symbol_list = self.bars.symbol_list
         self.start_date = start_date
         self.initial_capital = initial_capital
+        self.portfolio_date = datetime.datetime(2000,1,1)
+        # self.smooth_count = 3 # Used for portfolio adjustment smoothing
+        # Used for store OrderEvent for smoothing
+        self.order_queue = dict((k, v) for k, v in [(s, []) for s in self.symbol_list])
+
 
         self.all_positions = self.construct_all_positions()
         self.current_positions = dict( (k,v) for k, v in [(s, 0.0) for s in self.symbol_list] )
@@ -76,8 +82,8 @@ class Portfolio(object):
         Adds a new record to the positions matrix for the current market data bar. This reflects the PREVIOUS bar, i.e. all current market data at this stage is known (OHLCV).
         Makes use of a MarketEvent from the events queue.
         """
-        latest_datetime = self.bars.get_latest_bar_datetime(
-            self.symbol_list[0] )
+        latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
+        self.portfolio_date = latest_datetime
         
         # Update positions
         # ================
@@ -169,8 +175,8 @@ class Portfolio(object):
         Parameters:
         signal - The tuple containing Signal information.
         """
-        order = None
-
+        order = []
+        init_order_date = signal.datetime
         symbol = signal.symbol
         direction = signal.signal_type
         strength = signal.strength
@@ -179,25 +185,103 @@ class Portfolio(object):
         cur_quantity = self.current_positions[symbol]
         order_type = 'MKT'
 
-        if direction == 'LONG' and cur_quantity == 0:
-            order = OrderEvent(symbol, order_type, mkt_quantity, 'BUY')
+        if direction == 'LONG': # and cur_quantity == 0:
+            order.append(OrderEvent(init_order_date, symbol, order_type, mkt_quantity, 'BUY'))
         if direction == 'SHORT' and cur_quantity == 0:
-            order = OrderEvent(symbol, order_type, mkt_quantity, 'SELL')
+            order.append(OrderEvent(init_order_date, symbol, order_type, mkt_quantity, 'SELL'))
 
         if direction == 'EXIT' and cur_quantity > 0:
-            order = OrderEvent(symbol, order_type, abs(cur_quantity), 'SELL')
+            order.append(OrderEvent(init_order_date, symbol, order_type, abs(cur_quantity), 'SELL'))
         if direction == 'EXIT' and cur_quantity < 0:
-            order = OrderEvent(symbol, order_type, abs(cur_quantity), 'BUY')
+            order.append(OrderEvent(init_order_date, symbol, order_type, abs(cur_quantity), 'BUY'))
 
         return order
+
+    def generate_smooth_order(self, signal):
+        """
+        Fill an Order object as a constant quantity sizing of the signal object, without risk management or position sizing considerations.
+        As default, an order will be implemented with a smooth window of 5 days.
+        :param signal: A SignalEvent, from self.update_signal().
+        :return: dict - An OrderEvent queue.
+        """
+        orders = []
+        symbol = signal.symbol
+        init_order_date = signal.datetime
+        dd = datetime.timedelta(days=1)
+        direction = signal.signal_type
+        strength = signal.strength
+        mkt_quantity = signal.quantity
+        cur_quantity = self.current_positions[symbol]
+        order_type = 'MKT'
+
+        if direction == 'LONG':
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='BUY', smooth=0))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='BUY', smooth=1))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='BUY', smooth=2))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='BUY', smooth=3))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='BUY', smooth=4))
+        if direction == 'SHORT':
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='SELL', smooth=0))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='SELL', smooth=1))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='SELL', smooth=2))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='SELL', smooth=3))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*mkt_quantity, direction='SELL', smooth=4))
+        if direction == 'EXIT' and cur_quantity > 0:
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='SELL', smooth=0))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='SELL', smooth=1))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='SELL', smooth=2))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='SELL', smooth=3))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='SELL', smooth=4))
+        if direction == 'EXIT' and cur_quantity < 0:
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='BUY', smooth=0))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='BUY', smooth=1))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='BUY', smooth=2))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='BUY', smooth=3))
+            orders.append(OrderEvent(timeindex=init_order_date, symbol=symbol, order_type=order_type, quantity=1/5*abs(cur_quantity), direction='BUY', smooth=4))
+
+        self.order_queue[symbol] += orders
 
     def update_signal(self, event):
         """
         Acts on a SignalEvent to generate new orders based on the portfolio logic.
         """
         if event.type == 'SIGNAL':
-            order_event = self.generate_naive_order(event)
-            self.events.put(order_event)
+            if self.order_queue[event.symbol]:
+                for index, order in enumerate(self.order_queue[event.symbol]):
+                    # self.historical_signal() 已将smooth为1的symbol变为0
+                    # New SignalEvent的T+0 Order的smooth参数为0，需要先还原以避免order明天的交易
+                    self.order_queue[event.symbol][index].smooth += 1
+            self.generate_smooth_order(event) # 生成新的Order
+            if self.order_queue[event.symbol]:
+                order_queue = []
+                for order in self.order_queue[event.symbol]:
+                    if order.smooth == 0:
+                        self.events.put(order)
+                    else:
+                        order.smooth -= 1 # 还原本函数之前对smooth-1的处理
+                        order_queue.append(order)
+                self.order_queue[event.symbol] = order_queue
+
+    def historical_signal(self, event):
+        """
+        Act on remaining order from historical SignalEvent due to lag and smoothing of portfolio management.
+        """
+        if event.type == 'MARKET':
+            for symbol in self.symbol_list:
+                if self.order_queue[symbol]:
+                    order_queue = []
+                    for order in self.order_queue[symbol]:
+                        if order.smooth > 0:
+                            order.smooth -= 1
+                            order_queue.append(order)
+                            print(order.symbol + ' ' + str(order.smooth + 1) + ' to ' + str(order.smooth))
+                        else:
+                            self.events.put(order)
+                            print(order.symbol + ' Order at '+ order.timeindex.strftime('%Y-%m-%d'))
+                    self.order_queue[symbol] = order_queue
+
+
+
 
     def create_equity_curve_dataframe(self):
         """
@@ -229,7 +313,7 @@ class Portfolio(object):
 
         self.equity_curve.to_csv('EquityCurve.csv')
         return stats
-    
+
     def plot_summary(self):
         plt.style.use('seaborn')
         fig = plt.figure()

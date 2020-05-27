@@ -38,9 +38,8 @@ class Portfolio(object):
         self.initial_capital = initial_capital
         self.portfolio_date = datetime.datetime(2000,1,1)
         # self.smooth_count = 3 # Used for portfolio adjustment smoothing
-        # Used for store OrderEvent for smoothing
+        # Used for store historical OrderEvent for smoothing
         self.order_queue = dict((k, v) for k, v in [(s, []) for s in self.symbol_list])
-
 
         self.all_positions = self.construct_all_positions()
         self.current_positions = dict( (k,v) for k, v in [(s, 0.0) for s in self.symbol_list] )
@@ -181,7 +180,7 @@ class Portfolio(object):
         direction = signal.signal_type
         strength = signal.strength
 
-        mkt_quantity = 100
+        mkt_quantity = signal.quantity
         cur_quantity = self.current_positions[symbol]
         order_type = 'MKT'
 
@@ -257,6 +256,7 @@ class Portfolio(object):
                 for order in self.order_queue[event.symbol]:
                     if order.smooth == 0:
                         self.events.put(order)
+                        # print(order.symbol + " " + order.direction)
                     else:
                         order.smooth -= 1 # 还原本函数之前对smooth-1的处理
                         order_queue.append(order)
@@ -279,9 +279,6 @@ class Portfolio(object):
                             self.events.put(order)
                             print(order.symbol + ' Order at '+ order.timeindex.strftime('%Y-%m-%d'))
                     self.order_queue[symbol] = order_queue
-
-
-
 
     def create_equity_curve_dataframe(self):
         """

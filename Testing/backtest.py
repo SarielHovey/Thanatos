@@ -38,8 +38,9 @@ class Backtest(object):
         self.portfolio_cls = portfolio
         self.strategy_cls = strategy
         self.window = window
+
         self.events = queue.Queue()
-        
+
         self.signals = 0
         self.orders = 0
         self.fills = 0
@@ -80,8 +81,8 @@ class Backtest(object):
                 else:
                     if event is not None:
                         if event.type == 'MARKET':
-                            self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
+                            self.strategy.calculate_signals(event)
                             self.portfolio.historical_signal(event) # Execute remaining orders due to lag and smoothing
                         elif event.type == 'SIGNAL':
                             self.signals += 1
@@ -117,4 +118,3 @@ class Backtest(object):
         self._run_backtest()
         self._output_performance(frequency=frequency)
         self.portfolio.plot_summary()
-        

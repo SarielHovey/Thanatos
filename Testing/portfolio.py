@@ -314,7 +314,7 @@ class Portfolio(object):
     def plot_summary(self):
         plt.style.use('seaborn')
         fig = plt.figure()
-        ax1 = fig.add_subplot(311, ylabel='Portfolio value, %')
+        ax1 = fig.add_subplot(311, ylabel='Portfolio value')
         self.equity_curve['equity_curve'].plot(ax=ax1, color="blue", lw=1.)
         ax2 = fig.add_subplot(312, ylabel='Period returns, %')
         self.equity_curve['returns'].plot(ax=ax2, color="black", lw=1.)

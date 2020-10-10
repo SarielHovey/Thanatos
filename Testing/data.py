@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-
+import datetime
 import os, os.path
 import numpy as np
 import pandas as pd
@@ -107,8 +107,7 @@ class HistoricCSVDataHandler(DataHandler):
         for s in self.symbol_list:
             self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad')
             self.symbol_data[s].fillna(method='ffill',axis=0,inplace=True) # Be careful if the start day value is 0. Incorrect signal may be triggered in this case
-            self.symbol_data[s].fillna(value=0.0,inplace=True)
-            self.symbol_data[s]["returns"] = (np.log(self.symbol_data[s]["adj_close"])-np.log(self.symbol_data[s]['adj_close'].shift(1))).dropna()
+            self.symbol_data[s]["returns"] = self.symbol_data[s]["adj_close"].pct_change().dropna()
             self.symbol_data[s] = self.symbol_data[s].iterrows()
         # Output is generator of ('price_date', 'ticker', 'open_price', 'high_price', 'low_price', 'close_price', 'volume','adj_factor','adj_close','returns')
 
@@ -196,7 +195,7 @@ class HistoricCSVDataHandler(DataHandler):
 class SQLDataHandler(DataHandler):
     """
     Read data from DB in the form of Pandas DataFrame and provide a interface to obtain the latest bar in a manner identical to a live trading interface.
-
+    This class is used to interact with a locally installed MySQL db.
     Work the same as HistoricCSVDataHandler().
     """
     def __init__(self, events, csv_dir, symbol_list, startdate='2000-01-01 00:00:00', enddate='2020-01-01 00:00:00'):
@@ -241,7 +240,6 @@ class SQLDataHandler(DataHandler):
         for s in self.symbol_list:
             self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad')
             self.symbol_data[s].fillna(method='ffill',axis=0,inplace=True) # Be careful if the start day value is 0. Incorrect signal may be triggered in this case
-            self.symbol_data[s].fillna(value=0.0,inplace=True)
             self.symbol_data[s]["returns"] = self.symbol_data[s]["adj_close"].pct_change().dropna()
             self.symbol_data[s] = self.symbol_data[s].iterrows()
 
@@ -324,4 +322,56 @@ class SQLDataHandler(DataHandler):
             else:
                 if bar is not None:
                     self.latest_symbol_data[s].append(bar)
-        self.events.put(MarketEvent())        
+        self.events.put(MarketEvent())
+
+
+class SQLiteDataHandler(DataHandler):
+    """
+    This Class is used to interact with SQLite. Sqlite library of Python is used for WSL2 support.
+    """
+    def __init__(self, events, csv_dir, symbol_list, startdate='2000-01-01 00:00:00', enddate='2020-01-01 00:00:00'):
+        """
+        Initialize SQLiteDataHandler. Required *.db file should already be placed under path "csv_dir"
+
+        Parameters:
+        events - The Event Queue.
+        csv_dir - Absolute directory path to the db files. Name "csv_dir" is used to stay compatible with MyCSVDataHandler()
+        symbol_list - A list of symbol strings. e.g. ['601988','601000']
+        startdate: str, '2000-01-01 00:00:00'
+        enddate: str, '2020-01-01 00:00:00'
+        """
+        self.events = events
+        self.csv_dir = csv_dir
+        self.startdate = startdate
+        self.enddate = enddate
+        self.symbol_list = symbol_list
+        self.symbol_data = {}
+        self.latest_symbol_data = {}
+        self.continue_backtest = True
+        self._load_convert_sql_data()
+
+    def _load_convert_sql_data(self):
+        """
+        Read data from DB, converting it into pandas DataFrame within a symbol dictionary.
+        -------------------------------------
+        Output should be in format: ('price_date', 'ticker', 'open_price', 'high_price', 'low_price', 'close_price', 'volume','adj_factor','adj_close','returns')
+        """
+        comb_index = None
+        tu = TuShare()
+        for s in self.symbol_list:
+            self.symbol_data[s] = tu.get_daily_data_sql(ticker=s, startdate=self.startdate, enddate=self.enddate)
+            self.symbol_data[s]['adj_close'] = self.symbol_data[s]['close_price'] * self.symbol_data[s]['adj_factor']
+            self.symbol_data[s].sort_index(inplace=True)
+            if comb_index is None:
+                comb_index = self.symbol_data[s].index
+            else:
+                comb_index = comb_index.union(self.symbol_data[s].index)
+            self.latest_symbol_data[s] = []
+        
+        for s in self.symbol_list:
+            self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad')
+            self.symbol_data[s].fillna(method='ffill',axis=0,inplace=True) # Be careful if the start day value is 0. Incorrect signal may be triggered in this case
+            self.symbol_data[s]["returns"] = self.symbol_data[s]["adj_close"].pct_change().dropna()
+            self.symbol_data[s] = self.symbol_data[s].iterrows()    
+
+

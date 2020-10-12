@@ -1,7 +1,11 @@
 from datetime import datetime as dt
 import pandas as pd
 import tushare as tu
-import MySQLdb as mdb
+try:
+    import MySQLdb as mdb
+except ImportError:
+    raise ImportWarning("Could not find library for MySQL db!")
+import sqlite3
 
 
 COLUMNS = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'AdjFacotr']
@@ -31,7 +35,7 @@ class TuShare(object):
         Returns
         -------
         'str'
-        The full API call for a ticker time series
+        The full API call for a ticker time series, usually identical to RIC
         """
         if ticker[:2] == '60':
             ticker += '.SH'
@@ -90,14 +94,33 @@ class TuShare(object):
         """
         DB_HOST = 'localhost'
         DB_USER = 'sec_user'
-        DB_PASS = 'shuangshuang'
+        DB_PASS = 'YOUR_PSWORD_HERE'
         DB_NAME = 'securities_master'
         con = mdb.connect(DB_HOST, DB_USER, DB_PASS, DB_NAME)
         sql = "SELECT sym.ticker, dp.price_date, dp.open_price, dp.high_price, dp.low_price, dp.close_price, dp.volume, dp.adj_factor FROM daily_price AS dp INNER JOIN symbol AS sym ON sym.id = dp.symbol_id where " + "sym.ticker = '" + ticker + "' AND " + "dp.price_date BETWEEN ' " + startdate + "' AND '" + enddate + "' ORDER BY dp.price_date ASC;"
         otpt = pd.read_sql_query(sql, con=con, index_col='price_date')
         return otpt
 
-    def get_daily_data_sql_to_csv(self, ticker, startdate, enddate, path='./'):
+    def get_daily_data_sqlite(self, ticker, startdate, enddate, source="Z:/DB/securities_master.db"):
+        """
+        Use DATABASE securities_master to query data for ticker input.
+        This method is used for RDBMS like SQLite.
+        Parameters
+        ----------
+        ticker : 'str', The ticker symbol, e.g. '601988'
+        start_date : str, '%Y-%m-%d %H:%M:%S', The starting date to obtain pricing for
+        end_date : str, '%Y-%m-%d %H:%M:%S', The ending date to obtain pricing for
+        source : str, The place for SQLite *.db file
+        Returns
+        -------
+        'pd.DataFrame', The frame of OHLCV prices and volumes
+        """
+        con = sqlite3.connect(source)
+        sql = "SELECT sym.ticker, dp.price_date, dp.open_price, dp.high_price, dp.low_price, dp.close_price, dp.volume, dp.adj_factor FROM daily_price AS dp INNER JOIN symbol AS sym ON sym.id = dp.symbol_id where " + "sym.ticker = '" + ticker + "' AND " + "dp.price_date BETWEEN ' " + startdate + "' AND '" + enddate + "' ORDER BY dp.price_date ASC;"
+        otpt = pd.read_sql_query(sql, con=con, index_col='price_date')
+        return otpt
+
+    def get_daily_data_sql_to_csv(self, ticker, startdate, enddate, path='./', engine="MySQL"):
         """
         Export data from DB into csv file.
         Parameters
@@ -105,11 +128,18 @@ class TuShare(object):
         ticker : 'str', The ticker symbol, e.g. '601988'
         start_date : str, '%Y-%m-%d %H:%M:%S', The starting date to obtain pricing for
         end_date : str, '%Y-%m-%d %H:%M:%S', The ending date to obtain pricing for
+        path : str, path to store output file, default as current working folder
+        engine : str, param to select db engine, default as MySQL; could also be SQLite
         Returns
         -------
         'CSV', A csv file on local drive.
         """
-        temp = self.get_daily_data_sql(ticker=ticker,startdate=startdate,enddate=enddate)
+        if engine == 'MySQL':
+            temp = self.get_daily_data_sql(ticker=ticker,startdate=startdate,enddate=enddate)
+        elif engine == 'SQLite':
+            temp = self.get_daily_data_sqlite(ticker=ticker, startdate=startdate, enddate=enddate)
+        else:
+            temp = None
         path = path + ticker + '.csv'
         temp.to_csv(path, encoding='UTF-8')
         

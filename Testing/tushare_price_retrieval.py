@@ -2,33 +2,48 @@ from datetime import datetime as dt
 import warnings
 import time
 import MySQLdb as mdb
+import sqlite3
 import tushare as ts
 import pandas as pd
 # Please set Tushare Pro API before use this
 WAIT_TIME_IN_SECONDS = 1.5 # Adjust how frequently the API is called (second)
 
-# Obtain a database connection to the MySQL instance
-DB_HOST = 'localhost'
-DB_USER = 'sec_user'
-DB_PASS = 'Your_Password_Here'
-DB_NAME = 'securities_master'
-con = mdb.connect(DB_HOST, DB_USER, DB_PASS, DB_NAME)
 
-def obtain_list_of_db_tickers():
+def obtain_db_connection(source="MySQL", path="Z:/DB/securities_master.db"):
+    """
+    Obtain connection to db.
+    :param source: db type used, could be "MySQL" or "SQLite"
+    :param path: path for SQLite *.db file
+    :return: SQL connection object
+    """
+    if source == "MySQL":
+        DB_HOST = 'localhost'
+        DB_USER = 'sec_user'
+        DB_PASS = 'Your_Password_Here'
+        DB_NAME = 'securities_master'
+        con = mdb.connect(DB_HOST, DB_USER, DB_PASS, DB_NAME)
+        return con
+    elif source == "SQLite":
+        con = sqlite3.connect(path)
+        return con
+
+
+def obtain_list_of_db_tickers(connection):
     """
     Obtains a list of the ticker symbols of HS300 in the database.
+    This function works the same on mdb or sqlite3 cursor
     """
-    cur = con.cursor()
+    cur = connection.cursor()
     cur.execute("SELECT id, ticker FROM symbol where exchange_id = 3 or exchange_id = 4")
-    con.commit()
-    data = cur.fetchall()
+    connection.commit()
+    data = cur.fetchall()  # sqlite3 cursor also supports this method
     return [[d[0], d[1]] for d in data]
+
 
 def tushare_ticker(ticker_list):
     """
     Input should be output from obtain_list_of_db_tickers(),
     Output will be a modified ticker_list for Tushare API with same shape.
-    Further Version will be rewrite in Cython for performance.
     """
     for i, tick in enumerate(ticker_list):
         if tick[1][:2] == '60':
@@ -39,13 +54,13 @@ def tushare_ticker(ticker_list):
             tick[1] += '.SZ'
     return ticker_list
 
+
 def tushare_data(tick, start_date, end_date):
     """
     Download daily data via tushare API for one tick.
     Price are non-adjusted.
+    Symbols with download error will be appended to global errList.
     """
-    global errList
-    errList = []
     try:
         data0 = ts.pro_bar(ts_code=tick, start_date=start_date, end_date=end_date,adj=None)
         data1 = ts.pro_api().adj_factor(ts_code=tick, start_date=start_date, end_date=end_date)
@@ -56,7 +71,8 @@ def tushare_data(tick, start_date, end_date):
         errList.append(tick)
         return []
     else:
-        data = pd.merge(data0[['ts_code','trade_date','open','high','low','close','vol']],data1[['trade_date','adj_factor']],how='left',left_on='trade_date',right_on='trade_date')
+        data = pd.merge(data0[['ts_code','trade_date','open','high','low','close','vol']],
+                        data1[['trade_date','adj_factor']], how='left', left_on='trade_date', right_on='trade_date')
         data.vol = data.vol.apply(lambda x: int(x * 100))
         data.trade_date = pd.to_datetime(data.trade_date)
         data['adj_factor'].fillna(method='pad',inplace=True)
@@ -73,6 +89,7 @@ def tushare_data(tick, start_date, end_date):
                     data.iloc[i,7] # d6, adj_factor
                 ))
         return prices
+
 
 def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
     """
@@ -95,11 +112,11 @@ def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
     con.commit()
 
 
-
 if __name__ == '__main__':
-    # This ignores the warnings regarding Data Truncation from the AlphaVantage precision to Decimal(19,4) datatypes
-    warnings.filterwarnings('ignore')
-    ticker_list = obtain_list_of_db_tickers()
+    errList = []
+    # warnings.filterwarnings('ignore')
+    con = obtain_db_connection()
+    ticker_list = obtain_list_of_db_tickers(connection=con)
     tickers = tushare_ticker(ticker_list)
     lentickers = len(tickers)
     for i, t in enumerate(tickers):

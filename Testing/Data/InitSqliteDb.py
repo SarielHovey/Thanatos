@@ -86,7 +86,7 @@ def enrich(path:str ="~/Thanatos/Data/securities_master.db"):
     # Enrich table exchange
     column_str = "id, abbrev, name, city, country, currency, timezone_offset, created_date, last_updated_date"
     insert_str = ("?, " * 9)[:-2]
-    final_str = ("INSERT INTO data_vendor (%s) VALUES (%s)" % (column_str, insert_str))
+    final_str = ("INSERT INTO exchange (%s) VALUES (%s)" % (column_str, insert_str))
     DATA = []
     DATA.append(tuple(["1","NYSE","The New York Stock Exchange","New York","USA","USD",None,dt.utcnow(),dt.utcnow()]))
     DATA.append(tuple(["2","Nasdaq","Nasdaq","New York",'USA',"USD",None,dt.utcnow(),dt.utcnow()]))

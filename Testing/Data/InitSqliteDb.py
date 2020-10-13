@@ -1,4 +1,6 @@
 import sqlite3
+from datetime import datetime as dt
+from datetime import time
 
 
 def main(path:str ="~/Thanatos/Data/securities_master.db"):
@@ -63,8 +65,37 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         
     con.commit()
     
+
+def enrich(path:str ="~/Thanatos/Data/securities_master.db"):
+    """
+    Enrich some startup message into db.
+    :return: void
+    """
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    # Enrich table data_vendor
+    column_str = "id, name, website_url, support_email, created_date, last_updated_date"
+    insert_str = ("?, " * 6)[:-2]
+    final_str = ("INSERT INTO data_vendor (%s) VALUES (%s)" % (column_str, insert_str))
+    DATA = []
+    DATA.append(tuple(["1","AlphaVantage","https://www.alphavantage.co/","support@alphavantage.co",dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["2","Quandl","https://www.quandl.com/","support@quandl.com",dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["3","TuShare","https://www.tushare.pro/","waditu",dt.utcnow(),dt.utcnow()]))
+    cur.executemany(final_str,DATA)
+    con.commit()
+    # Enrich table exchange
+    column_str = "id, abbrev, name, city, country, currency, timezone_offset, created_date, last_updated_date"
+    insert_str = ("?, " * 9)[:-2]
+    final_str = ("INSERT INTO data_vendor (%s) VALUES (%s)" % (column_str, insert_str))
+    DATA = []
+    DATA.append(tuple(["1","NYSE","The New York Stock Exchange","New York","USA","USD",None,dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["2","Nasdaq","Nasdaq","New York",'USA',"USD",None,dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["3","SSE","Shanghai Stock Exchange","Shanghai","China","CNY",time(8,0,0),dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["4","SZSE","Shenzhen Stock Exchange Stock Exchange","Shenzhen","China","CNY",time(8,0,0),dt.utcnow(),dt.utcnow()]))
+    cur.executemany(final_str,DATA)
+    con.commit()
+
     
 if __name__ == "__main__":
     main(path="./securities_master.db")
     print("SQLite db initialized successuflly in ./Data/ !")
-    

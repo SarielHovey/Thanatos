@@ -81,7 +81,7 @@ CREATE TABLE data_vendor (
     
 CREATE TABLE symbol ( 
     id int PRIMARY KEY, 
-    exchange_id int, 
+    exchange_id int KEY, 
     ticker varchar(32) NOT NULL, 
     instrument varchar(64) NOT NULL, 
     name varchar(255), 
@@ -93,8 +93,8 @@ CREATE TABLE symbol (
     
 CREATE TABLE daily_price ( 
     id int PRIMARY KEY, 
-    data_vendor_id int NOT NULL, 
-    symbol_id int NOT NULL, 
+    data_vendor_id int KEY NOT NULL, 
+    symbol_id int KEY NOT NULL, 
     price_date datetime NOT NULL, 
     created_date datetime NOT NULL, 
     last_updated_date datetime NOT NULL, 

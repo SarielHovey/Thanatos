@@ -1,12 +1,12 @@
 from datetime import datetime as dt
-import warnings
 import time
-import MySQLdb as mdb
+try:
+    import MySQLdb as mdb
+except ImportError:
+    raise ImportWarning("Caution: Library MySQLdb import fails!")
 import sqlite3
 import tushare as ts
 import pandas as pd
-# Please set Tushare Pro API before use this
-WAIT_TIME_IN_SECONDS = 1.5 # Adjust how frequently the API is called (second)
 
 
 def obtain_db_connection(source="MySQL", path="Z:/DB/securities_master.db"):
@@ -80,22 +80,21 @@ def tushare_data(tick, start_date, end_date):
         for i, day in enumerate(data.trade_date):
             prices.append(
                 (
-                    data.iloc[i,1], # d0, trade_date
-                    data.iloc[i,2], # d1, open_price
-                    data.iloc[i,3], # d2, high_price
-                    data.iloc[i,4], # d3, low_price
-                    data.iloc[i,5], # d4, close_price
-                    data.iloc[i,6], # d5, volume
-                    data.iloc[i,7] # d6, adj_factor
+                    data.iat[i,1].to_pydatetime(), # d0, trade_date, change into datetime object rather than pd.TimeStamp Object
+                    data.iat[i,2], # d1, open_price
+                    data.iat[i,3], # d2, high_price
+                    data.iat[i,4], # d3, low_price
+                    data.iat[i,5], # d4, close_price
+                    data.iat[i,6], # d5, volume
+                    data.iat[i,7] # d6, adj_factor
                 ))
         return prices
 
 
-def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
+def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data, engine="MySQL"):
     """
     Takes a list of tuples of daily_data and adds it to the MySQL database. Appends the vendor ID and symbol ID to the data.
     """
-    now = dt.utcnow()
     # Amend the data to include the vendor ID and symbol ID
     daily_data = [
         (data_vendor_id, symbol_id, d[0], dt.utcnow(), dt.utcnow(), d[1], d[2], d[3], d[4], d[5], d[6]) for d in daily_data
@@ -105,6 +104,8 @@ def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
         "data_vendor_id, symbol_id, price_date, created_date, last_updated_date, open_price, high_price, low_price, close_price, volume, adj_factor"
     )
     insert_str = ("%s, " * 11)[:-2]
+    if engine == "SQLite":  # Support for sqlite3
+        insert_str = ("?, " * 11)[:-2]
     final_str = ("INSERT INTO daily_price (%s) VALUES (%s)" % (column_str, insert_str))
     # Using the MySQL connection, carry out an INSERT INTO for every symbol
     cur = con.cursor()
@@ -112,7 +113,11 @@ def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
     con.commit()
 
 
+
 if __name__ == '__main__':
+    # Please set Tushare Pro API before use this
+    # Adjust how frequently the API is called (second)
+    WAIT_TIME_IN_SECONDS = 1.5
     errList = []
     # warnings.filterwarnings('ignore')
     con = obtain_db_connection()

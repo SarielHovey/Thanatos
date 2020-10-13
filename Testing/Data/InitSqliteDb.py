@@ -34,7 +34,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
     cur.execute( """
         CREATE TABLE symbol ( 
         id int PRIMARY KEY, 
-        exchange_id int, 
+        exchange_id int KEY, 
         ticker varchar(32) NOT NULL, 
         instrument varchar(64) NOT NULL, 
         name varchar(255), 
@@ -47,8 +47,8 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
     cur.execute( """
         CREATE TABLE daily_price ( 
         id int PRIMARY KEY, 
-        data_vendor_id int NOT NULL, 
-        symbol_id int NOT NULL, 
+        data_vendor_id int KEY NOT NULL, 
+        symbol_id int KEY NOT NULL, 
         price_date datetime NOT NULL, 
         created_date datetime NOT NULL, 
         last_updated_date datetime NOT NULL, 
@@ -65,7 +65,6 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
     
     
 if __name__ == "__main__":
-    main()
+    main(path="./securities_master.db")
     print("SQLite db initialized successuflly in ./Data/ !")
-
     

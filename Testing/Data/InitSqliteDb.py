@@ -1,6 +1,6 @@
 import sqlite3
-from datetime import datetime as dt
-from datetime import time
+import datetime as dt
+import pandas as pd
 
 
 def main(path:str ="~/Thanatos/Data/securities_master.db"):
@@ -78,22 +78,49 @@ def enrich(path:str ="~/Thanatos/Data/securities_master.db"):
     insert_str = ("?, " * 6)[:-2]
     final_str = ("INSERT INTO data_vendor (%s) VALUES (%s)" % (column_str, insert_str))
     DATA = []
-    DATA.append(tuple(["1","AlphaVantage","https://www.alphavantage.co/","support@alphavantage.co",dt.utcnow(),dt.utcnow()]))
-    DATA.append(tuple(["2","Quandl","https://www.quandl.com/","support@quandl.com",dt.utcnow(),dt.utcnow()]))
-    DATA.append(tuple(["3","TuShare","https://www.tushare.pro/","waditu",dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["1","AlphaVantage","https://www.alphavantage.co/","support@alphavantage.co",dt.datetime.utcnow(),dt.datetime.utcnow()]))
+    DATA.append(tuple(["2","Quandl","https://www.quandl.com/","support@quandl.com",dt.datetime.utcnow(),dt.datetime.utcnow()]))
+    DATA.append(tuple(["3","TuShare","https://www.tushare.pro/","waditu",dt.datetime.utcnow(),dt.datetime.utcnow()]))
     cur.executemany(final_str,DATA)
     con.commit()
-    print("data_vendor done!")
     # Enrich table exchange
     column_str = "id, abbrev, name, city, country, currency, timezone_offset, created_date, last_updated_date"
     insert_str = ("?, " * 9)[:-2]
     final_str = ("INSERT INTO exchange (%s) VALUES (%s)" % (column_str, insert_str))
     DATA = []
-    DATA.append(tuple(["1","NYSE","The New York Stock Exchange","New York","USA","USD",None,dt.utcnow(),dt.utcnow()]))
-    DATA.append(tuple(["2","Nasdaq","Nasdaq","New York",'USA',"USD",None,dt.utcnow(),dt.utcnow()]))
-    DATA.append(tuple(["3","SSE","Shanghai Stock Exchange","Shanghai","China","CNY",None,dt.utcnow(),dt.utcnow()]))
-    DATA.append(tuple(["4","SZSE","Shenzhen Stock Exchange Stock Exchange","Shenzhen","China","CNY",None,dt.utcnow(),dt.utcnow()]))
+    DATA.append(tuple(["1","NYSE","The New York Stock Exchange","New York","USA","USD",None,dt.datetime.utcnow(),dt.datetime.utcnow()]))
+    DATA.append(tuple(["2","Nasdaq","Nasdaq","New York",'USA',"USD",None,dt.datetime.utcnow(),dt.datetime.utcnow()]))
+    DATA.append(tuple(["3","SSE","Shanghai Stock Exchange","Shanghai","China","CNY",None,dt.datetime.utcnow(),dt.datetime.utcnow()]))
+    DATA.append(tuple(["4","SZSE","Shenzhen Stock Exchange Stock Exchange","Shenzhen","China","CNY",None,dt.datetime.utcnow(),dt.datetime.utcnow()]))
     cur.executemany(final_str,DATA)
+    con.commit()
+    # Enrich table symbol
+    hs300 = pd.read_csv("HS300.csv",header=0,dtype={"id":int,"exchange_id":int,"ticker":str})
+    hs300.created_date = dt.datetime.utcnow()
+    hs300.last_updated_date = dt.datetime(2020,10,12,9,0,0)
+    column_str = "id, exchange_id, ticker, instrument, name, sector, currency, created_date, last_updated_date"
+    insert_str = ("?, " * 9)[:-2]
+    final_str = ("INSERT INTO symbol (%s) VALUES (%s)" % (column_str, insert_str))
+    DATA = []
+    for i, ticker in enumerate(hs300.ticker):
+        DATA.append(
+            (
+                hs300.iloc[i, 0],  # id
+                hs300.iloc[i, 1],  # exchange_id
+                hs300.iloc[i, 2],  # ticker
+                hs300.iloc[i, 3],  # instrument
+                hs300.iloc[i, 4],  # name
+                hs300.iloc[i, 5],  # sector
+                hs300.iloc[i, 6],  # currency
+                # ------------------------
+                # Caution: DO NOT use hs300.iloc[i, 7] here as pandas transforms data type of datetime object
+                #   SQLite does not recognize datetime objects transformed by pandas
+                # ------------------------
+                dt.datetime.utcnow(),  # created_date
+                dt.datetime(2020,10,12,9,0,0)   # last_updated_date
+            )
+        )
+    cur.executemany(final_str, DATA)
     con.commit()
 
 

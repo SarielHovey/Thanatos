@@ -105,13 +105,13 @@ def enrich(path:str ="~/Thanatos/Data/securities_master.db"):
     for i, ticker in enumerate(hs300.ticker):
         DATA.append(
             (
-                hs300.iloc[i, 0],  # id
-                hs300.iloc[i, 1],  # exchange_id
-                hs300.iloc[i, 2],  # ticker
-                hs300.iloc[i, 3],  # instrument
-                hs300.iloc[i, 4],  # name
-                hs300.iloc[i, 5],  # sector
-                hs300.iloc[i, 6],  # currency
+                hs300.iat[i, 0],  # id
+                hs300.iat[i, 1],  # exchange_id
+                hs300.iat[i, 2],  # ticker
+                hs300.iat[i, 3],  # instrument
+                hs300.iat[i, 4],  # name
+                hs300.iat[i, 5],  # sector
+                hs300.iat[i, 6],  # currency
                 # ------------------------
                 # Caution: DO NOT use hs300.iloc[i, 7] here as pandas transforms data type of datetime object
                 #   SQLite does not recognize datetime objects transformed by pandas

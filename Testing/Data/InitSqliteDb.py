@@ -105,8 +105,8 @@ def enrich(path:str ="~/Thanatos/Data/securities_master.db"):
     for i, ticker in enumerate(hs300.ticker):
         DATA.append(
             (
-                hs300.iat[i, 0],  # id
-                hs300.iat[i, 1],  # exchange_id
+                int(hs300.iat[i, 0]),  # id
+                int(hs300.iat[i, 1]),  # exchange_id
                 hs300.iat[i, 2],  # ticker
                 hs300.iat[i, 3],  # instrument
                 hs300.iat[i, 4],  # name

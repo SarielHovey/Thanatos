@@ -85,7 +85,7 @@ def tushare_data(tick, start_date, end_date):
                     data.iat[i,3], # d2, high_price
                     data.iat[i,4], # d3, low_price
                     data.iat[i,5], # d4, close_price
-                    data.iat[i,6], # d5, volume
+                    int(data.iat[i,6]), # d5, volume; SQLite may have bug with int dtype, should use int() to transfer
                     data.iat[i,7] # d6, adj_factor
                 ))
         return prices

@@ -277,7 +277,7 @@ class Portfolio(object):
                             print(order.symbol + ' ' + str(order.smooth + 1) + ' to ' + str(order.smooth))
                         else:
                             self.events.put(order)
-                            print(order.symbol + ' Order at '+ order.timeindex.strftime('%Y-%m-%d'))
+                            print(order.symbol + ' Order at '+ order.timeindex)  # If Sql Datahandaler used, order.timeindex here may be a str
                     self.order_queue[symbol] = order_queue
 
     def create_equity_curve_dataframe(self):

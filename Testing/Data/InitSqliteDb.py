@@ -12,7 +12,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
     
     cur.execute( """
         CREATE TABLE exchange ( 
-        id INT PRIMARY KEY, 
+        id INTEGER PRIMARY KEY autoincrement, 
         abbrev VARCHAR(32) NOT NULL, 
         name VARCHAR(255) NOT NULL, 
         city VARCHAR(255), 
@@ -25,7 +25,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         """ )        
     cur.execute( """
         CREATE TABLE data_vendor ( 
-        id INT PRIMARY KEY, 
+        id INTEGER PRIMARY KEY autoincrement, 
         name varchar(64) NOT NULL, 
         website_url varchar(255), 
         support_email varchar(255), 
@@ -35,7 +35,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         """ )
     cur.execute( """
         CREATE TABLE symbol ( 
-        id int PRIMARY KEY, 
+        id INTEGER PRIMARY KEY autoincrement, 
         exchange_id int KEY, 
         ticker varchar(32) NOT NULL, 
         instrument varchar(64) NOT NULL, 
@@ -48,7 +48,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         """ )
     cur.execute( """
         CREATE TABLE daily_price ( 
-        id int PRIMARY KEY, 
+        id INTEGER PRIMARY KEY autoincrement, 
         data_vendor_id int KEY NOT NULL, 
         symbol_id int KEY NOT NULL, 
         price_date datetime NOT NULL, 
@@ -59,7 +59,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         low_price decimal(19,4), 
         close_price decimal(19,4), 
         adj_factor decimal(19,10), 
-        volume bigint NULL 
+        volume bigint
         );
         """ )
         

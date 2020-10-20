@@ -1,7 +1,7 @@
 from strategy import Strategy
 from event import SignalEvent
 from backtest import Backtest
-from data import HistoricCSVDataHandler
+from data import SQLiteDataHandler, HistoricCSVDataHandler
 from execution import SimulatedExecutionHandler
 from portfolio import Portfolio
 import datetime as dt
@@ -62,11 +62,9 @@ class MovingAverageCrossStrategy(Strategy):
                 else:
                     short_sma = np.mean(bars[-self.short_window-1:-1])
                     long_sma = np.mean(bars[-self.long_window-1:-1])
-
                 symbol = s
                 cur_date = dt.datetime.utcnow()
                 sig_dir = ""
-
                 if short_sma > long_sma and self.bought[s] == "OUT":
                     print("LONG: %s" % bar_date)
                     sig_dir = 'LONG'
@@ -110,14 +108,12 @@ class MomentumStrategy(Strategy):
                 for s in self.symbol_list:
                     bars = self.bars.get_latest_bars_values(s, "returns", N=self.window[1]) # [1,2.3,4,5,6,7,8,9]
                     bars = bars[:223]
-                    if bars[-1] * 0 !=0 : continue  # when bar_date < day_of_symbol_on_mkt, symbol price is NA
+                    if bars[-1] * 0 !=0 : continue  # symbol may not be available on self.bar_date, skip NA trades
                     self.bar_date = self.bars.get_latest_bar_datetime(s)
-
                     model = sm.OLS(bars,self.day_count)
                     results = model.fit()
                     dic = {'tick':s, 'time':self.bar_date, 't':results.tvalues[0]}
                     self.momentum.append(dic)
-
                 largest50 = heapq.nlargest(50, self.momentum, key=lambda s:s['t'])
                 for i in largest50:
                     tick = i['tick']
@@ -129,12 +125,11 @@ class MomentumStrategy(Strategy):
                         self.events.put(signal)
                     elif self.bought[tick] == 'LONG':
                         self.buy_list.append(tick)
-
                 for i in self.bought.keys():
                     if self.bought[i] == 'LONG' and (i not in self.buy_list):
                         self.bought[i] = 'OUT'
                         print("EXIT: %s at %s" % (i, self.bar_date))
-                        signal = SignalEvent(strategy_id=1, symbol=i, datetime=self.bar_date, signal_type='EXIT',strength=1.0, quantity=500)
+                        signal = SignalEvent(strategy_id=1, symbol=i, datetime=self.bar_date, signal_type='EXIT', strength=1.0, quantity=500)
                         self.events.put(signal)
 
 
@@ -161,6 +156,5 @@ if __name__ == "__main__":
     heartbeat = 0.0
     start_date = dt.datetime(2000, 1, 1, 0, 0, 0)
     end_date = dt.datetime.utcnow()
-    backtest = Backtest(csv_dir=csv_dir, symbol_list=symbol_list, initial_capital=initial_capital, heartbeat=heartbeat, startdate=start_date, enddate=end_date, data_handler=HistoricCSVDataHandler, execution_handler=SimulatedExecutionHandler, portfolio=Portfolio, strategy=MomentumStrategy, window=[30,252])
+    backtest = Backtest(csv_dir=csv_dir, symbol_list=symbol_list, initial_capital=initial_capital, heartbeat=heartbeat, startdate=start_date, enddate=end_date, data_handler=SQLiteDataHandler, execution_handler=SimulatedExecutionHandler, portfolio=Portfolio, strategy=MomentumStrategy, window=[30,252])
     backtest.simulate_trading(frequency=252)
-    

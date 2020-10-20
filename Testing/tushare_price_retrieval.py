@@ -3,13 +3,13 @@ import time
 try:
     import MySQLdb as mdb
 except ImportError:
-    raise ImportWarning("Caution: Library MySQLdb import fails!")
+    print("Caution: Library MySQLdb import fails!")
 import sqlite3
 import tushare as ts
 import pandas as pd
 
 
-def obtain_db_connection(source="MySQL", path="Z:/DB/securities_master.db"):
+def obtain_db_connection(source="MySQL", path="./Data/securities_master.db"):
     """
     Obtain connection to db.
     :param source: db type used, could be "MySQL" or "SQLite"
@@ -85,7 +85,7 @@ def tushare_data(tick, start_date, end_date):
                     data.iat[i,3], # d2, high_price
                     data.iat[i,4], # d3, low_price
                     data.iat[i,5], # d4, close_price
-                    int(data.iat[i,6]), # d5, volume; SQLite may have bug with int dtype, should use int() to transfer
+                    int(data.iat[i,6]), # d5, volume
                     data.iat[i,7] # d6, adj_factor
                 ))
         return prices
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     WAIT_TIME_IN_SECONDS = 1.5
     errList = []
     # warnings.filterwarnings('ignore')
-    con = obtain_db_connection()
+    con = obtain_db_connection(source="MySQL", path="Z:/DB/securities_master.db")
     ticker_list = obtain_list_of_db_tickers(connection=con)
     tickers = tushare_ticker(ticker_list)
     lentickers = len(tickers)

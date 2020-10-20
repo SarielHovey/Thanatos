@@ -4,7 +4,7 @@ import tushare as tu
 try:
     import MySQLdb as mdb
 except ImportError:
-    raise ImportWarning("Could not find library for MySQL db!")
+    print("Could not find library for MySQL db!")
 import sqlite3
 
 
@@ -101,7 +101,7 @@ class TuShare(object):
         otpt = pd.read_sql_query(sql, con=con, index_col='price_date')
         return otpt
 
-    def get_daily_data_sqlite(self, ticker, startdate, enddate, source="Z:/DB/securities_master.db"):
+    def get_daily_data_sqlite(self, ticker, startdate, enddate, source="./Data/securities_master.db"):
         """
         Use DATABASE securities_master to query data for ticker input.
         This method is used for RDBMS like SQLite.

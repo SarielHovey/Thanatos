@@ -299,3 +299,5 @@ id,exchange_id,ticker,instrument,name,sector,currency,created_date,last_updated_
 298,4,300498,equity,"GUANGDONGWENSFOODSTUFFGROUPCO.,LTD",TBD,CNY,,
 299,4,300601,equity,"Shenzhen Kangtai Biological Products Co., Ltd.",TBD,CNY,,
 300,4,300628,equity,YEALINK NETWORK TECHNOLOGY CORPORATION LIMITED,TBD,CNY,,
+301,4,002864,equity,Shanxi Panlong Pharmaceutical Group Limited By Share Ltd,TBD,CNY,,
+302,3,600380,equity,"Joincare Pharmaceutical Group Industry Co.,Ltd.",TBD,CNY,,

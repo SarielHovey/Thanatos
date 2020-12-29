@@ -301,3 +301,5 @@ id,exchange_id,ticker,instrument,name,sector,currency,created_date,last_updated_
 300,4,300628,equity,YEALINK NETWORK TECHNOLOGY CORPORATION LIMITED,TBD,CNY,,
 301,4,002864,equity,Shanxi Panlong Pharmaceutical Group Limited By Share Ltd,TBD,CNY,,
 302,3,600380,equity,"Joincare Pharmaceutical Group Industry Co.,Ltd.",TBD,CNY,,
+303,4,002690,equity,Hefei Meiya Optoelectronic Technology Inc,TBD,CNY,,
+304,3,603960,equity,"Shanghai Kelai Mechatronics Engineering Co.,Ltd",TBD,CNY,,

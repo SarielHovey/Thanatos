@@ -40,19 +40,22 @@ def obtain_list_of_db_tickers(connection):
     return [[d[0], d[1]] for d in data]
 
 
-def tushare_ticker(ticker_list):
+def tushare_ticker(ticker_list, ric=True):
     """
     Input should be output from obtain_list_of_db_tickers(),
     Output will be a modified ticker_list for Tushare API with same shape.
     """
-    for i, tick in enumerate(ticker_list):
-        if tick[1][:2] == '60':
-            tick[1] += '.SH'
-        elif tick[1][:2] == '00':
-            tick[1] += '.SZ'
-        elif tick[1][:2] == '30':
-            tick[1] += '.SZ'
-    return ticker_list
+    if ric == True:
+        return ticker_list
+    else:
+        for i, tick in enumerate(ticker_list):
+            if tick[1][:2] == '60':
+                tick[1] += '.SH'
+            elif tick[1][:2] == '00':
+                tick[1] += '.SZ'
+            elif tick[1][:2] == '30':
+                tick[1] += '.SZ'
+        return ticker_list
 
 
 def tushare_data(tick, start_date, end_date):
@@ -113,7 +116,6 @@ def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data, engine="MyS
     con.commit()
 
 
-
 if __name__ == '__main__':
     # Please set Tushare Pro API before use this
     # Adjust how frequently the API is called (second)
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     # warnings.filterwarnings('ignore')
     con = obtain_db_connection(source="MySQL", path="Z:/DB/securities_master.db")
     ticker_list = obtain_list_of_db_tickers(connection=con)
-    tickers = tushare_ticker(ticker_list)
+    tickers = tushare_ticker(ticker_list, ric=True)  # DB stores RIC as ticker; if not, set 'ric' to False
     lentickers = len(tickers)
     for i, t in enumerate(tickers):
         print("Adding data for %s: %s out of %s" % (t[1], i+1, lentickers))

@@ -12,7 +12,7 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
     
     cur.execute( """
         CREATE TABLE exchange ( 
-        id INTEGER PRIMARY KEY autoincrement, 
+        id INTEGER PRIMARY KEY, 
         abbrev VARCHAR(32) NOT NULL, 
         name VARCHAR(255) NOT NULL, 
         city VARCHAR(255), 
@@ -21,11 +21,11 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         timezone_offset DATETIME, 
         created_date DATETIME NOT NULL, 
         last_updated_date DATETIME NOT NULL
-        );
-        """ )        
+        ); 
+        """)        
     cur.execute( """
         CREATE TABLE data_vendor ( 
-        id INTEGER PRIMARY KEY autoincrement, 
+        id INTEGER PRIMARY KEY, 
         name varchar(64) NOT NULL, 
         website_url varchar(255), 
         support_email varchar(255), 
@@ -35,22 +35,25 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         """ )
     cur.execute( """
         CREATE TABLE symbol ( 
-        id INTEGER PRIMARY KEY autoincrement, 
-        exchange_id int KEY, 
+        id INTEGER PRIMARY KEY, 
+        exchange_id int, 
         ticker varchar(32) NOT NULL, 
         instrument varchar(64) NOT NULL, 
         name varchar(255), 
         sector varchar(255), 
         currency varchar(32), 
         created_date datetime NOT NULL, 
-        last_updated_date datetime NOT NULL
+        last_updated_date datetime NOT NULL,
+        FOREIGN KEY (exchange_id) REFERENCES exchange (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         """ )
     cur.execute( """
         CREATE TABLE daily_price ( 
-        id INTEGER PRIMARY KEY autoincrement, 
-        data_vendor_id int KEY NOT NULL, 
-        symbol_id int KEY NOT NULL, 
+        id INTEGER PRIMARY KEY, 
+        data_vendor_id int NOT NULL, 
+        symbol_id int NOT NULL, 
         price_date datetime NOT NULL, 
         created_date datetime NOT NULL, 
         last_updated_date datetime NOT NULL, 
@@ -59,7 +62,13 @@ def main(path:str ="~/Thanatos/Data/securities_master.db"):
         low_price decimal(19,4), 
         close_price decimal(19,4), 
         adj_factor decimal(19,10), 
-        volume bigint
+        volume bigint,
+        FOREIGN KEY (data_vendor_id) REFERENCES data_vendor (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE,
+        FOREIGN KEY (symbol_id) REFERENCES symbol (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         """ )
         
@@ -95,7 +104,7 @@ def enrich(path:str ="~/Thanatos/Data/securities_master.db"):
     cur.executemany(final_str,DATA)
     con.commit()
     # Enrich table symbol
-    hs300 = pd.read_csv("HS300.csv",header=0,dtype={"id":int,"exchange_id":int,"ticker":str})
+    hs300 = pd.read_csv("StockPool.csv",header=0,dtype={"id":int,"exchange_id":int,"ticker":str})
     hs300.created_date = dt.datetime.utcnow()
     hs300.last_updated_date = dt.datetime(2020,10,12,9,0,0)
     column_str = "id, exchange_id, ticker, instrument, name, sector, currency, created_date, last_updated_date"

@@ -25,29 +25,34 @@ class TuShare(object):
         # ts.set_token(api_key)
         self.api_key = api_key
 
-    def _construct_tushare_symbol_call(self, ticker):
+    def _construct_ric_symbol_call(self, ticker, ric=False):
         """
         Construct the full API call to TuShare based on the user provided API key and the desired ticker symbol.
         Parameters
         ----------
-        ticker : 'str'
-        The ticker symbol, e.g. '600388'
+        ticker : str
+            The ticker symbol, e.g. '600388' or '601988.SH'
+        ric : bool
+            If ticker is already RIC, then set to True
         Returns
         -------
-        'str'
+        str
         The full API call for a ticker time series, usually identical to RIC
         """
-        if ticker[:2] == '60':
-            ticker += '.SH'
-        elif ticker[:1] == '5':
-            ticker += '.SH'
-        elif ticker[:2] == '00':
-            ticker += '.SZ'
-        elif ticker[:2] == '30':
-            ticker += '.SZ'
-        elif ticker[:1] == '1':
-            ticker += '.SZ'
-        return ticker
+        if ric == False:
+            if ticker[:2] == '60':
+                ticker += '.SH'
+            elif ticker[:1] == '5':
+                ticker += '.SH'
+            elif ticker[:2] == '00':
+                ticker += '.SZ'
+            elif ticker[:2] == '30':
+                ticker += '.SZ'
+            elif ticker[:1] == '1':
+                ticker += '.SZ'
+            return ticker
+        else:
+            return ticker
 
     def get_daily_historic_data(self, ticker, start_date, end_date, asset='E', adj=None):
         """
@@ -62,7 +67,7 @@ class TuShare(object):
         -------
         'pd.DataFrame', The frame of OHLCV prices and volumes
         """
-        ts_code = self._construct_tushare_symbol_call(ticker)
+        ts_code = self._construct_ric_symbol_call(ticker, ric=True)
         # print(ticker, ts_code) # Used for Debug
         try:
             data0 = tu.pro_bar(ts_code=ts_code, start_date=start_date, end_date=end_date, asset=asset, adj=adj)
@@ -85,7 +90,7 @@ class TuShare(object):
         This method is used for RDBMS like MySQL.
         Parameters
         ----------
-        ticker : 'str', The ticker symbol, e.g. '601988'
+        ticker : 'str', The ticker symbol, e.g. '601988', '601388.SH'
         start_date : str, '%Y-%m-%d %H:%M:%S', The starting date to obtain pricing for
         end_date : str, '%Y-%m-%d %H:%M:%S', The ending date to obtain pricing for
         Returns

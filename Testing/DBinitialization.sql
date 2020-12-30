@@ -59,7 +59,7 @@ CREATE TABLE daily_price ( id int NOT NULL AUTO_INCREMENT,
 # if use sqlite, then use the below instead
                                                                                                             
 CREATE TABLE exchange ( 
-        id INTEGER PRIMARY KEY autoincrement, 
+        id INTEGER PRIMARY KEY, 
         abbrev VARCHAR(32) NOT NULL, 
         name VARCHAR(255) NOT NULL, 
         city VARCHAR(255), 
@@ -71,7 +71,7 @@ CREATE TABLE exchange (
         );
 
 CREATE TABLE data_vendor ( 
-        id INTEGER PRIMARY KEY autoincrement, 
+        id INTEGER PRIMARY KEY, 
         name varchar(64) NOT NULL, 
         website_url varchar(255), 
         support_email varchar(255), 
@@ -80,21 +80,24 @@ CREATE TABLE data_vendor (
         );
     
 CREATE TABLE symbol ( 
-        id INTEGER PRIMARY KEY autoincrement, 
-        exchange_id int KEY, 
+        id INTEGER PRIMARY KEY, 
+        exchange_id int, 
         ticker varchar(32) NOT NULL, 
         instrument varchar(64) NOT NULL, 
         name varchar(255), 
         sector varchar(255), 
         currency varchar(32), 
         created_date datetime NOT NULL, 
-        last_updated_date datetime NOT NULL
+        last_updated_date datetime NOT NULL,
+        FOREIGN KEY (exchange_id) REFERENCES exchange (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
     
 CREATE TABLE daily_price ( 
-        id INTEGER PRIMARY KEY autoincrement, 
-        data_vendor_id int KEY NOT NULL, 
-        symbol_id int KEY NOT NULL, 
+        id INTEGER PRIMARY KEY, 
+        data_vendor_id int NOT NULL, 
+        symbol_id int NOT NULL, 
         price_date datetime NOT NULL, 
         created_date datetime NOT NULL, 
         last_updated_date datetime NOT NULL, 
@@ -103,5 +106,12 @@ CREATE TABLE daily_price (
         low_price decimal(19,4), 
         close_price decimal(19,4), 
         adj_factor decimal(19,10), 
-        volume bigint
+        volume bigint,
+        FOREIGN KEY (data_vendor_id) REFERENCES data_vendor (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE,
+        FOREIGN KEY (symbol_id) REFERENCES symbol (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
+        

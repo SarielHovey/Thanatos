@@ -114,8 +114,9 @@ class MomentumStrategy(Strategy):
                     results = model.fit()
                     dic = {'tick':s, 'time':self.bar_date, 't':results.tvalues[0]}
                     self.momentum.append(dic)
-                largest50 = heapq.nlargest(50, self.momentum, key=lambda s:s['t'])
-                for i in largest50:
+                # largest50 = heapq.nlargest(50, self.momentum, key=lambda s:s['t'])
+                largest20 = heapq.nlargest(20, self.momentum, key=lambda s:s['t'])
+                for i in largest20:
                     tick = i['tick']
                     if self.bought[tick] == 'OUT':
                         self.bought[tick] = 'LONG'

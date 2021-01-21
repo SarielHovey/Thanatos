@@ -115,3 +115,15 @@ CREATE TABLE daily_price (
             ON DELETE CASCADE
         );
         
+CREATE TABLE fundamentals (
+        id INTEGER PRIMARY KEY,
+        symbol_id int NOT NULL,
+        annual_date datetime NOT NULL,
+        f_annual_date datetime NOT NULL,
+        end_date NOT NULL,
+        created_date datetime NOT NULL,
+        last_updated_date datetime NOT NULL,
+        FOREIGN KEY (symbol_id) REFERENCES symbol (id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
+        );
